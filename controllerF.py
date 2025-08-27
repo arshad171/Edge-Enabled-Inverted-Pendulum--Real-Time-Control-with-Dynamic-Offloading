@@ -9,7 +9,7 @@ HOST_IP = os.getenv('HOST_IP')
 
 # Use the host's IP address for listening
 # UDP_IP = HOST_IP if HOST_IP else '0.0.0.0'
-# K - controler gain (observer based feedback implemented)  
+# K - controler gain (observer based feedback implemented)
 K =  [-0.60, -.02,  .01]   # Adjust PID controller parameters based on the environment of the robot is experiencing
 # Initialise some parameters:
 theta_hat = [0, 0, 0]   # Initialise observer states
@@ -19,8 +19,11 @@ F_old = 0               # Initialise old output (used when dropout occurs)
 maxVolt = 9             # Largest allowed voltage
 restart = 0
 
+# TO_WRITE_UDP = 32149
+# TO_WRITE_IP = "192.168.40.11"
+WRITE_TO = ("192.168.40.11", 32149)
 UDP_IP = '0.0.0.0'  # This is the IP of the raspberry PI and the server listening ports on it
-# UDP_PORT_GUI = 32150 
+# UDP_PORT_GUI = 32150
 UDP_PORT_MEAS = 5007
 print(HOST_IP)
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -46,7 +49,7 @@ while True:
         break
     t_new = time.time()
     time_difference = t_new - time_meas
-    
+
     motor_angle = measurement["motor_angle"]
     active = measurement["active"]
     error = motor_angle - desired_angle
@@ -57,14 +60,15 @@ while True:
         print("Pendulum fell, it is a disaster...")
         try:
             # Send control signal over UDP to Raspberry Pi
-            message = {'control_signal': 0}
+            message = {"control_signal": 0}
+            # message = {"F": 0}
             message = json.dumps(message).encode('utf-8')
             server.sendto(message,address)
-            #print(message)
+            # print(message)
         except KeyboardInterrupt:
             print("Exiting program")
             server.close()
-        
+
     else:
         if active:
             integral_error += (error * (time_difference))
@@ -79,15 +83,17 @@ while True:
         F = -100
     error_old = error
 
-    print(measurement,F,integral_error,time_difference)
+    # print(measurement,F,integral_error,time_difference)
     # Get user input for the control signal
     try:
         # Send control signal over UDP to Raspberry Pi
-        
-        message = {'control_signal': F}
+
+        message = {"control_signal": F}
+        # message = {"F": F}
+        print(measurement["active"])
+        print("error", error, integral_error, "control", F)
         message = json.dumps(message).encode('utf-8')
         server.sendto(message, address)
     except KeyboardInterrupt:
         print("Exiting program")
         server.close()
-

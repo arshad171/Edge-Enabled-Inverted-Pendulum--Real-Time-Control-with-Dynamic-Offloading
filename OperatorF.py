@@ -19,9 +19,9 @@ direction = {"pendulum_control_signal": 0}
 
 # Set appropriate addresses (currently everything is sent to raspberry pi)
 #server_address1  = ('192.168.60.4', 32150)   # IP of PID controller (local control)
-server_address1 = ('192.168.10.219', 32150)  # IP of PID controller  (Edge Server)O
+server_address1 = ('192.168.40.11', 32150)  # IP of PID controller  (Edge Server)O
 #server_address1  = ('192.168.20.11', 32150)   # IP of PID controller  (Local computing)
-server_address2 = ('192.168.10.219', 32151)  # IP of Robot RPi
+server_address2 = ('192.168.40.10', 32151)  # IP of Robot RPi
 server_address3 = ('192.168.60.219', 32152)  # ('192.168.60.1', 32152)
 
 
@@ -150,7 +150,7 @@ app.setMessageWidth("welcome", 700)
  
 # Features
 app.addLabelEntry("Controller IP:")
-app.setEntry("Controller IP:", "192.168.60.1:32150")
+app.setEntry("Controller IP:", "192.168.40.11:32149")
 row = app.getRow()
 app.addRadioButton("Option", "Normal operation")
 app.addRadioButton("Option", "Packet Loss")

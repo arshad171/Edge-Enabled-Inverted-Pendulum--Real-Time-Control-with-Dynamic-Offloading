@@ -1,0 +1,54 @@
+import cv2
+import numpy as np
+
+batch_size = 1
+
+frame_width = 1920
+frame_height = 1080
+
+def get_data(batch_size):
+    return np.random.randint(0, 256, (frame_height, frame_width, 3), dtype=np.uint8)
+
+
+class Model:
+    def __init__(self):
+        # weights = th.load("module/weights.pth")
+        self.model = None
+        image_template = cv2.imread('module/sample.png')
+
+        # Convert the template image to grayscale
+        self.temp_gray = image_template
+
+    def predict(self, batch_size=batch_size):
+
+        frame = get_data(batch_size)
+
+        lower_line = 150
+
+        half_height = frame_height // 2
+        upper_half = frame[:half_height, :, :]
+        lower_half = frame[half_height:-lower_line, :, :]
+
+        # Convert the captured frames to grayscale
+        upper_gray = upper_half
+        lower_gray = lower_half
+
+        result_upper = cv2.matchTemplate(upper_gray, self.temp_gray, cv2.TM_CCORR_NORMED)
+
+        # Match template for lower half
+        result_lower = cv2.matchTemplate(lower_gray, self.temp_gray, cv2.TM_CCORR_NORMED)
+
+        # Find locations of the best matches for upper half
+        _, _, _, max_loc1 = cv2.minMaxLoc(result_upper)
+        _, _, _, max_loc2 = cv2.minMaxLoc(result_lower)
+
+        # Store coordinates of detected objects in the upper half (tip point)
+        tip_point = {'x': max_loc1[0] + self.temp_gray.shape[1] // 2, 'y': max_loc1[1] + self.temp_gray.shape[0] // 2}
+
+        # Store coordinates of detected objects in the lower half (fixed point)
+        fixed_point = {'x': max_loc2[0] + self.temp_gray.shape[1] // 2, 'y': max_loc2[1] + self.temp_gray.shape[0] // 2 + half_height}
+
+        return {
+            "tip_point": tip_point,
+            "fixed_point": fixed_point,
+        }

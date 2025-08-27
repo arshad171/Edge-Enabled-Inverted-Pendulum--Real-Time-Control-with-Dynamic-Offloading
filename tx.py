@@ -8,7 +8,7 @@ def tx(function,seq,value,Validity_Period,direction=0):
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     #server.bind((UDP_IP, UDP_PORT))
     server.settimeout(0.3)
-    address=('192.168.10.11', 32152) # the address of the RPi
+    address=('192.168.40.10', 32152) # the address of the RPi
     if 'd' in function: #send the data
         result = {"PacketType": 'ControlMessage', "Seq": seq, 'PowerValue': value, "Risk": 'unknown',
                   "ValidityPeriod": Validity_Period,"direction":direction}

@@ -1,0 +1,10 @@
+fastapi==0.115.2
+uvicorn
+prometheus-fastapi-instrumentator
+numpy
+# tensorflow==2.17.0
+# tensorflow_hub==0.16.1
+# tensorflow_text
+# tf-models-official
+# scikit_learn
+setproctitle

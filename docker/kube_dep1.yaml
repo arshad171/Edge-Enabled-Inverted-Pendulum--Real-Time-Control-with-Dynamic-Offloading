@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-deployment-dnn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-dnn
+  template:
+    metadata:
+      labels:
+        app: ml-dnn
+    spec:
+      containers:
+      - name: ml-dnn
+        image: ml-dnn  # The image tag should match the local image name
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000  # Assuming your app runs on port 8080
+        # resources:
+        #   limits:
+        #     # nvidia.com/gpu: "1"
+        #     cpu: "8000m"
+        # #   requests:
+        # #     cpu: "8000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-dnn-service
+spec:
+  type: NodePort  # This exposes the service on a port that can be accessed externally
+  ports:
+  - port: 8000    # The port inside the cluster
+    targetPort: 8000  # The container's port
+    nodePort: 30000   # NodePort range is 30000-32767, or you can let Kubernetes assign automatically
+  selector:
+    app: ml-dnn

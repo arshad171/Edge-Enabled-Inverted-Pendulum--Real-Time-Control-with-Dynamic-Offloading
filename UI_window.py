@@ -5,14 +5,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import ImageTk, Image
 
-RPI_ADDRESS = ('192.168.10.11', 32152)  # IP of Robot RPi
-UDP_IP_ROBOT = ("192.168.10.11",5006)  # Replace with the actual IP address of your robot
+MINIKUBE_IP = "192.168.49.2"
 
-UDP_IP_EDGE = ("195.54.97.118",5005)  # IP of the EDGE so that camera angle could be sent
-UDP_IP_EDGE_NEAR = ("192.168.10.219",5007)  # IP of the NEAR EDGE (hosts) so that camera angle could be sent
-UDP_IP_EDGE_LOCAL = ("192.168.10.219",5006)  # This hosts IP to listen controller command
+RPI_ADDRESS = ('192.168.40.10', 32152)  # IP of Robot RPi
+UDP_IP_ROBOT = ('192.168.40.10', 32149)  # Replace with the actual IP address of your robot
+
+UDP_IP_EDGE = (
+    "192.168.40.11",
+    5005
+)  # IP of the EDGE so that camera angle could be sent
+UDP_IP_EDGE_NEAR = ("192.168.40.11",5007)  # IP of the NEAR EDGE (hosts) so that camera angle could be sent
 
 VIDEO_SAVE_PATH = 'captured_video.avi'  # Specify the path where you want to save the video
+
+SINE_WAVE = True
+SINE_AMP = 25
+SINE_FREQ = 1 / 2
+CURR_TIME = 0
 class UI():
     def __init__(self, root):
         self.root = root
@@ -57,7 +66,7 @@ class UI():
         self.motion_check = 1
         self.control_check = 0
         # Canvas for displaying video feed
-        self.canvas = ttk.Canvas(self.frame1, width=self.cap.get(cv2.CAP_PROP_FRAME_WIDTH), height=self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.canvas = ttk.Canvas(self.frame1, width=self.cap.get(cv2.CAP_PROP_FRAME_WIDTH) / 4, height=self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT) / 4)
         self.canvas.pack()
 
         # Camera capture thread
@@ -103,6 +112,7 @@ class UI():
                     print("Failed to capture frame")
                     break
                 
+                t1 = time.time()
                 # Split the frame into two halves vertically
                 half_height = frame_height // 2
                 upper_half = frame[:half_height, :]
@@ -128,6 +138,10 @@ class UI():
                 # Store coordinates of detected objects in the lower half (fixed point)
                 fixed_point = {'x': max_loc2[0] + templ_gray.shape[1] // 2, 'y': max_loc2[1] + templ_gray.shape[0] // 2 + half_height}
 
+                # time.sleep(0.3)
+
+                # print("computation time", time.time() - t1)
+
                 # Draw a big dot at the center of the detected object (tip point) and display its coordinates
                 for coord in [tip_point, fixed_point]:
                     x, y = coord['x'], coord['y']
@@ -142,6 +156,7 @@ class UI():
                 dy = fixed_point['y'] - tip_point['y']
                 length = np.sqrt(dx**2 + dy**2)
                 angle = 180-np.arccos(dx / length) * 180 / np.pi  # Convert radians to degrees
+                # time.sleep(0.5)
                 #print(f"angle:{angle}")
                 # Draw line connecting the two points
                 cv2.line(frame, (fixed_point['x'], fixed_point['y']), (tip_point['x'], tip_point['y']), (255, 0, 0), 2)
@@ -170,14 +185,14 @@ class UI():
                         else:
                             average_time = 1 # Handle case when there are no measurements
 
-                        if average_time >= 0.0033: 
-                            self.server_to_listen = UDP_IP_EDGE_NEAR[0]
-                            self.server.sendto(message, UDP_IP_EDGE_NEAR)
-                            self.server.sendto(message_m, UDP_IP_EDGE)
-                        else:
-                            self.server_to_listen = UDP_IP_EDGE[0]
-                            self.server.sendto(message, UDP_IP_EDGE)
-                            self.server.sendto(message_m, UDP_IP_EDGE_NEAR)
+                        # if average_time >= 0.0033: 
+                        #     self.server_to_listen = UDP_IP_EDGE_NEAR[0]
+                        #     self.server.sendto(message, UDP_IP_EDGE_NEAR)
+                        #     self.server.sendto(message_m, UDP_IP_EDGE)
+                        # else:
+                        self.server_to_listen = UDP_IP_EDGE[0]
+                        self.server.sendto(message, UDP_IP_EDGE)
+                        self.server.sendto(message_m, UDP_IP_EDGE_NEAR)
                         print(average_time)
                         #self.plot_data()
                         #print(message)
@@ -242,6 +257,9 @@ class UI():
         self.desired_angle = self.angle
 
     def stop_motion(self):
+        global CURR_TIME
+
+        CURR_TIME = 0
         
         # Toggle button color between green and default color
         current_color = self.stop_button.cget('background')
@@ -269,13 +287,20 @@ class UI():
             self.t1.start()
 
     def motion(self):
+        global CURR_TIME
         while self.motion_check:
             #print("HERE")
-            result = {"PacketType": 'ControlMessage', 'PowerValue': self.slider.get(),"direction":RPI_ADDRESS}
+            if SINE_WAVE:
+                pv = SINE_AMP * np.sin(2*np.pi*SINE_FREQ*CURR_TIME)
+            else:
+                pv = self.slider.get()
+
+            result = {"PacketType": 'ControlMessage', 'PowerValue': pv,"direction":RPI_ADDRESS}
             #print(result)
             message = json.dumps(result).encode('utf-8')
             self.sock.sendto(message, RPI_ADDRESS)
             time.sleep(.1)
+            CURR_TIME += 0.1
             
     def control_signal(self):
         while self.control_check:
@@ -293,7 +318,6 @@ class UI():
                 if addr[0] == self.server_to_listen:
                     message = json.loads(data.decode('utf-8'))
                     result = {"control_signal":message['control_signal']}
-                    print(result,addr)
                     message = json.dumps(result).encode('utf-8')
                     self.server.sendto(message, UDP_IP_ROBOT)
             else:
@@ -310,6 +334,3 @@ root.title("UI Layout")
 
 ui = UI(root=root)
 root.mainloop()
-
-
-
