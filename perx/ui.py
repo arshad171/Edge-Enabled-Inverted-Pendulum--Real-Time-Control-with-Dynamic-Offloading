@@ -19,11 +19,11 @@ from PySide6.QtCore import QPointF, Qt, QTimer
 
 from perx.ctypes import *
 
-CANVAS_WIDTH = 800
+CANVAS_WIDTH = 750
 CANVAS_HEIGHT = 500
 
 WINDOW_WIDTH = 900
-WINDOW_HEIGHT = 600
+WINDOW_HEIGHT = 700
 
 
 class TimeRuler(QWidget):
@@ -123,6 +123,7 @@ class ShapeSpawner(QWidget):
 
         # Layouts
         main_layout = QVBoxLayout()
+        deploy_layout = QHBoxLayout()
         button_layout = QHBoxLayout()
         canvas_layout = QHBoxLayout()  # canvas + ruler side by side
 
@@ -139,25 +140,34 @@ class ShapeSpawner(QWidget):
         self.btn_square = QPushButton("text-tbert")
         self.btn_pentagon = QPushButton("iclf-efnet")
         self.btn_clear = QPushButton("CLEAR")
+        self.btn_rain = QPushButton("Make it rain!")
+        self.btn_deploy = QPushButton("Deploy")
+
+        deploy_layout.addStretch()
+        deploy_layout.addWidget(self.btn_deploy)
+        deploy_layout.addStretch()
 
         button_layout.addWidget(self.btn_circle)
         button_layout.addWidget(self.btn_square)
         button_layout.addWidget(self.btn_pentagon)
         button_layout.addWidget(self.btn_clear)
+        button_layout.addWidget(self.btn_rain)
 
         # Canvas
         self.scene = QGraphicsScene()
         self.scene.setSceneRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         self.view = QGraphicsView(self.scene)
+        self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.view.setFixedSize(CANVAS_WIDTH, CANVAS_HEIGHT)
 
         # Ruler widget
-        self.ruler = TimeRuler()
-        self.ruler.set_fill_time(0.150)
+        self.inf_time_ruler = TimeRuler()
+        self.inf_time_ruler.set_fill_time(0.150)
 
         # Add canvas and ruler side by side
         canvas_layout.addWidget(self.view)
-        canvas_layout.addWidget(self.ruler)
+        canvas_layout.addWidget(self.inf_time_ruler)
 
         # Connect buttons
         self.btn_circle.clicked.connect(self.spawn_circle)
@@ -166,15 +176,23 @@ class ShapeSpawner(QWidget):
         self.btn_clear.clicked.connect(self.clear_canvas)
 
         # Assemble layouts
-        main_layout.addWidget(title_label)   # add BEFORE buttons
+        main_layout.addWidget(title_label)
         main_layout.addLayout(button_layout)
         main_layout.addLayout(canvas_layout)
+        main_layout.addLayout(deploy_layout)
+
         self.setLayout(main_layout)
 
         # Gravity timer
         self.gravity_timer = QTimer()
         self.gravity_timer.timeout.connect(self.apply_gravity)
         self.gravity_timer.start(5)
+
+        self.add_visual_servos()
+
+    def add_visual_servos(self):
+        for _ in range(3):
+            self.spawn_circle(hatch=True)
 
     def apply_gravity(self, bottom_padding=30):
         for item in self.scene.items():
@@ -205,16 +223,24 @@ class ShapeSpawner(QWidget):
         for k in self.server_state.keys():
             self.server_state[k] = 0
 
-    def spawn_circle(self):
+        self.add_visual_servos()
+
+    def spawn_circle(self, hatch=False):
         scale = APP_SCALES["visual-servo"]
         circle = QGraphicsEllipseItem(0, 0, 50 * scale, 50 * scale)
-        circle.setBrush(QBrush(QColor("#ffffb3")))
+        if hatch:
+            brush = QBrush(QColor("#ffffb3"), Qt.DiagCrossPattern)
+            count = 1
+        else:
+            brush = QBrush(QColor("#ffffb3"))
+            count = 1.2
+        circle.setBrush(brush)
         circle.setPen(Qt.NoPen)
         self.place_item_without_overlap(circle)
         circle.setRotation(random.uniform(0, 90))
         circle._falling = True
         self.scene.addItem(circle)
-        self.inc_server_state("visual-servo")
+        self.inc_server_state("visual-servo", count=count)
 
     def spawn_square(self):
         scale = APP_SCALES["text-tbert"]
@@ -264,8 +290,8 @@ class ShapeSpawner(QWidget):
             self.scene.removeItem(item)
         return False
 
-    def inc_server_state(self, app_name):
-        self.server_state[app_name] += 1
+    def inc_server_state(self, app_name, count=1):
+        self.server_state[app_name] += count
         print(self.server_state)
 
 

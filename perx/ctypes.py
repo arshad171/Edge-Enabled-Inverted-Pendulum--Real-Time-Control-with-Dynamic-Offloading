@@ -9,7 +9,7 @@ APP_MEMS = {
 }
 
 APP_SCALES = {
-    "visual-servo": 1,
+    "visual-servo": 0.9,
     "iclf-efnet": 2,
     "text-tbert": 1.4,
 }
