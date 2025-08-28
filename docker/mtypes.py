@@ -1,6 +1,6 @@
 from typing import Any, NamedTuple, List, Dict, Optional
 
-HOME_PATH = "/Users/arshadjaveed/My Data/Workspace/Edge-Enabled-Inverted-Pendulum--Real-Time-Control-with-Dynamic-Offloading/"
+HOME_PATH = "/home/arshad/code/Edge-Enabled-Inverted-Pendulum--Real-Time-Control-with-Dynamic-Offloading/"
 
 ARRIVAL_RATES = [20, 100]  # per instance
 NUM_INSTANCES = [2, 10]
@@ -8,12 +8,19 @@ NUM_INSTANCES = [2, 10]
 APPLICATIONS = [
     "visual-servo",
     "iclf-efnet",
+    "text-tbert"
 ]
 
 APP_MEM_REQS = {
     "visual-servo": 0.3,
     "efnet": 1.3,
     "tbert": 0.7,
+}
+
+APP_AVG_ARRIVALS = {
+    "visual-servo": 2,
+    "iclf-efnet": 1,
+    "text-tbert": 1,
 }
 
 class TenantRequest(NamedTuple):

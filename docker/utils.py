@@ -43,7 +43,7 @@ def get_sample_kube_dep(
     app, replicas, port, group_ix, env_proc_title=None, memory_limit=None
 ):
     with open(
-        f"/Users/arshadjaveed/My Data/Workspace/Edge-Enabled-Inverted-Pendulum--Real-Time-Control-with-Dynamic-Offloading/docker/kube_dep1.yaml",
+        f"/home/arshad/code/Edge-Enabled-Inverted-Pendulum--Real-Time-Control-with-Dynamic-Offloading/docker/kube_dep1.yaml",
         "r",
     ) as file:
         docs = list(yaml.safe_load_all(file))
@@ -66,8 +66,8 @@ def get_sample_kube_dep(
                 "limits": {"memory": f"{int(memory_limit * 1000)}Mi"}
             }
 
-        # docs[1]["metadata"]["name"] = f"{app}-service-{group_ix}"
-        docs[1]["metadata"]["name"] = f"{app}-service"
+        docs[1]["metadata"]["name"] = f"{app}-service-{group_ix}"
+        # docs[1]["metadata"]["name"] = f"{app}-service"
         docs[1]["spec"]["selector"]["app"] = f"{app}"
         docs[1]["spec"]["selector"]["group"] = f"group-{group_ix}"
         docs[1]["spec"]["ports"][0]["port"] = a_ports[app]

@@ -210,7 +210,7 @@ class ShapeSpawner(QWidget):
         self.inc_server_state("tbert")
 
     def spawn_pentagon(self):
-        scale = APP_SCALES["efnet"]
+        scale = APP_SCALES["iclf-efnet"]
         polygon = QPolygonF(
             [
                 QPointF(25 * scale, 0 * scale),

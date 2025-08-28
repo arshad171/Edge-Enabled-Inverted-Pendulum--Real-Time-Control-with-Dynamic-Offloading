@@ -1,7 +1,7 @@
 import torch as th
 import torchvision.models as tv_models
 
-batch_size = 1
+batch_size = 2
 
 def get_data(batch_size):
     return th.randn(batch_size, 3, 224, 224)

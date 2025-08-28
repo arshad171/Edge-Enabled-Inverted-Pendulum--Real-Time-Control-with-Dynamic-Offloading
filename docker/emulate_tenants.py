@@ -15,11 +15,14 @@ import time
 import random
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import setproctitle
 
 from docker.mtypes import *
 
-# HOST = "192.168.49.2"
-HOST = "127.0.0.1"
+setproctitle.setproctitle("my_emulate_tenants")
+
+HOST = "192.168.49.2"
+# HOST = "127.0.0.1"
 
 num_samples = 16
 

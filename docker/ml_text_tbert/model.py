@@ -3,7 +3,7 @@ import string
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch
 
-batch_size = 1
+batch_size = 2
 weights_path = "/app/module/weights"
 
 def get_data(batch_size, word_length=6):
