@@ -14,4 +14,10 @@ APP_SCALES = {
     "text-tbert": 1.4,
 }
 
+APP_REVS = {
+    "visual-servo": 0.5,
+    "iclf-efnet": 3,
+    "text-tbert": 2,
+}
+
 MAX_SHAPE_SIZE = 75

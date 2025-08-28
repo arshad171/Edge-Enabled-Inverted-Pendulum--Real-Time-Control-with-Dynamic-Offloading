@@ -1,5 +1,6 @@
 import sys
 import random
+import time
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QLabel
 )
-from PySide6.QtGui import QPolygonF, QColor, QBrush, QPainter, QFont, QPen
+from PySide6.QtGui import QPolygonF, QColor, QBrush, QPainter, QFont, QPen, QPalette
 from PySide6.QtCore import QPointF, Qt, QTimer
 
 from perx.ctypes import *
@@ -23,8 +24,85 @@ CANVAS_WIDTH = 750
 CANVAS_HEIGHT = 500
 
 WINDOW_WIDTH = 900
-WINDOW_HEIGHT = 700
+WINDOW_HEIGHT = 800
 
+
+class HorizontalRuler(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.MAX_TICK = 32
+        self.setFixedHeight(50)
+        self.setMinimumWidth(CANVAS_WIDTH)
+        self.ticks = [
+            ("0", 0.0),
+            ("16 GB", 16 / self.MAX_TICK),
+            ("24 GB", 24 / self.MAX_TICK),
+            ("32 GB", 1.0),
+        ]
+
+        self.fill_value = 18
+
+    def set_set_fill_value(self, value: float):
+        """Update the filled time and repaint."""
+        self.fill_value = value
+        self.update()  # trigger repaint
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(240, 240, 240))
+
+        pen = QPen(QColor(0, 0, 0))
+        pen.setWidth(1)
+        painter.setPen(pen)
+
+        margin_left = 20
+        margin_right = 30
+        width = self.width() - margin_left - margin_right
+        y = 20  # horizontal axis line
+
+        # Draw spine
+        painter.drawLine(margin_left, y, margin_left + width, y)
+
+        # Draw ticks and labels
+        for label, t in self.ticks:
+            x = margin_left + t * width
+
+            if t == 32 / self.MAX_TICK:
+                # if label == "10 ms":
+                font = QFont()
+                font.setPointSize(12)  # bigger
+                font.setBold(True)
+                painter.setFont(font)
+                painter.setPen(QColor(255, 0, 0))  # red
+            else:
+                font = QFont()
+                font.setPointSize(9)
+                painter.setFont(font)
+                painter.setPen(QColor(0, 0, 0))  # black
+
+            painter.drawLine(x, y - 8, x, y + 8)
+            painter.drawText(x - 10, y + 25, label)
+
+        fill_ratio = min(1.0, self.fill_value / self.MAX_TICK)
+        fill_width = int(fill_ratio * width)
+        # color = QColor(100, 75, 200, 180)
+        color = QColor(25, 25, 25, 180)
+
+        painter.fillRect(
+            margin_left,
+            y - 8,
+            fill_width,
+            16,  # thickness of the bar
+            color,
+        )
+
+        # Title
+        font = QFont()
+        font.setBold(True)
+        font.setPointSize(9)
+        painter.setPen(QColor(0, 0, 0))  # red
+        painter.setFont(font)
+        painter.drawText(width // 2, 10, "Memory")
 
 class TimeRuler(QWidget):
     """Custom vertical time ruler (0–1 s)."""
@@ -39,14 +117,14 @@ class TimeRuler(QWidget):
             ("300 ms", 300 / self.MAX_TICK),
             ("200 ms", 200 / self.MAX_TICK),
             ("120 ms", 120 / self.MAX_TICK),
-            ("", 0.0),
+            ("0 ", 0.0),
         ]
         self.fill_time = 120 / self.MAX_TICK
         self.color = "green"
 
-    def set_fill_time(self, t_sec: float):
+    def set_set_fill_value(self, value: float):
         """Update the filled time and repaint."""
-        self.fill_time = t_sec
+        self.fill_time = value
         self.update()  # trigger repaint
 
     def paintEvent(self, event):
@@ -116,6 +194,7 @@ class ShapeSpawner(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.revenue = 0.0
         self.server_state = {"visual-servo": 0, "iclf-efnet": 0, "text-tbert": 0}
 
         self.setWindowTitle("PERX")
@@ -135,10 +214,66 @@ class ShapeSpawner(QWidget):
         title_label.setStyleSheet("color: red;")  # set text color to red
         title_label.setAlignment(Qt.AlignCenter)  # center horizontally
 
+        self.score_label = QLabel(f"$$ {self.revenue}")
+        font = QFont()
+        font.setPointSize(20)  # larger font size
+        font.setBold(True)
+        self.score_label.setFont(font)
+        self.score_label.setStyleSheet("color: white;")  # set text color to red
+        self.score_label.setAlignment(Qt.AlignRight)  # center horizontally
+
         # Buttons
         self.btn_circle = QPushButton("visual-servo")
+        self.btn_circle.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #ffffb3;
+                color: black;
+                border-style: outset;
+                border-width: 1px;
+                border-radius: 6px;
+                border-color: beige;
+                font: bold 12px;
+                min-width: 10em;
+                padding: 3px;
+            }
+            """
+        )
+
         self.btn_square = QPushButton("text-tbert")
+        self.btn_square.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #fccde5;
+                color: black;
+                border-style: outset;
+                border-width: 1px;
+                border-radius: 6px;
+                border-color: beige;
+                font: bold 12px;
+                min-width: 10em;
+                padding: 3px;
+            }
+            """
+        )
+
         self.btn_pentagon = QPushButton("iclf-efnet")
+        self.btn_pentagon.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #b3de69;
+                color: black;
+                border-style: outset;
+                border-width: 1px;
+                border-radius: 6px;
+                border-color: beige;
+                font: bold 12px;
+                min-width: 10em;
+                padding: 3px;
+            }
+            """
+        )
+
         self.btn_clear = QPushButton("CLEAR")
         self.btn_rain = QPushButton("Make it rain!")
         self.btn_deploy = QPushButton("Deploy")
@@ -163,7 +298,9 @@ class ShapeSpawner(QWidget):
 
         # Ruler widget
         self.inf_time_ruler = TimeRuler()
-        self.inf_time_ruler.set_fill_time(0.150)
+        self.inf_time_ruler.set_set_fill_value(0.150)
+
+        self.horiz_ruler = HorizontalRuler()
 
         # Add canvas and ruler side by side
         canvas_layout.addWidget(self.view)
@@ -174,11 +311,14 @@ class ShapeSpawner(QWidget):
         self.btn_square.clicked.connect(self.spawn_square)
         self.btn_pentagon.clicked.connect(self.spawn_pentagon)
         self.btn_clear.clicked.connect(self.clear_canvas)
+        self.btn_rain.clicked.connect(self.rain)
 
         # Assemble layouts
         main_layout.addWidget(title_label)
+        main_layout.addWidget(self.score_label)
         main_layout.addLayout(button_layout)
         main_layout.addLayout(canvas_layout)
+        main_layout.addWidget(self.horiz_ruler)
         main_layout.addLayout(deploy_layout)
 
         self.setLayout(main_layout)
@@ -220,10 +360,26 @@ class ShapeSpawner(QWidget):
 
     def clear_canvas(self):
         self.scene.clear()
+        self.revenue = 0
+
         for k in self.server_state.keys():
             self.server_state[k] = 0
 
         self.add_visual_servos()
+
+    def rain(self):
+        self.clear_canvas()
+
+        for _ in range(10):
+            rnd = random.random()
+            if rnd > 0 and rnd < 0.33:
+                self.spawn_circle()
+            elif rnd > 0.33 and rnd < 0.66:
+                self.spawn_square()
+            elif rnd > 0.66:
+                self.spawn_pentagon()
+
+            time.sleep(0.5)
 
     def spawn_circle(self, hatch=False):
         scale = APP_SCALES["visual-servo"]
@@ -293,6 +449,18 @@ class ShapeSpawner(QWidget):
     def inc_server_state(self, app_name, count=1):
         self.server_state[app_name] += count
         print(self.server_state)
+
+        used_cap = 0.0
+        self.revenue = 0
+        for app, num_instances in self.server_state.items():
+            used_cap += num_instances * APP_MEMS[app] * 1.5
+            self.revenue += APP_REVS[app] * num_instances
+
+        self.horiz_ruler.set_set_fill_value(used_cap)
+
+        print(self.revenue)
+        self.score_label.setText(f"$$ {self.revenue:.1f}")
+        self.score_label.repaint()
 
 
 if __name__ == "__main__":
