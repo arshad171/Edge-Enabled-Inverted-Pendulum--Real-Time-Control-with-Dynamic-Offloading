@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QGraphicsRectItem,
     QGraphicsPolygonItem,
     QFrame,
+    QLabel
 )
 from PySide6.QtGui import QPolygonF, QColor, QBrush, QPainter, QFont, QPen
 from PySide6.QtCore import QPointF, Qt, QTimer
@@ -32,20 +33,21 @@ class TimeRuler(QWidget):
         super().__init__(parent)
         self.setFixedWidth(80)
         self.setMinimumHeight(CANVAS_HEIGHT)
+        self.MAX_TICK = 500
         self.ticks = [
-            ("1 s", 1.0),
-            ("500 ms", 0.500),
-            ("100 ms", 0.100),
-            ("10 ms", 0.010),
+            ("500 ms", 1.0),
+            ("300 ms", 300 / self.MAX_TICK),
+            ("200 ms", 200 / self.MAX_TICK),
+            ("120 ms", 120 / self.MAX_TICK),
             ("", 0.0),
         ]
-        self.fill_time = 0.150  # time in seconds to fill (150 ms)
+        self.fill_time = 120 / self.MAX_TICK
+        self.color = "green"
 
     def set_fill_time(self, t_sec: float):
         """Update the filled time and repaint."""
         self.fill_time = t_sec
         self.update()  # trigger repaint
-
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -54,19 +56,27 @@ class TimeRuler(QWidget):
         pen.setWidth(1)
         painter.setPen(pen)
 
-        margin_top = 20
-        margin_bottom = 20
+        margin_top = 30
+        margin_bottom = 30
         height = self.height() - margin_top - margin_bottom
         x = 20  # position of the spine line
 
         # Draw filled portion (green)
-        y_fill = margin_top + height - self.fill_time * height
+        y_fill = margin_top + height - self.fill_time * 1000 / self.MAX_TICK * height
+
+        if self.fill_time <= 0.12:
+            color = QColor(100, 200, 100, 180)
+        elif self.fill_time > 0.12 and self.fill_time < 0.3:
+            color = QColor(255, 255, 0, 180)
+        elif self.fill_time > 0.3:
+            color = QColor(255, 0, 0, 180)
+
         painter.fillRect(
             x - 8,
             y_fill,
             16,
             height - (y_fill - margin_top),
-            QColor(100, 200, 100, 180),
+            color,
         )
 
         # Draw spine
@@ -77,8 +87,8 @@ class TimeRuler(QWidget):
             y = margin_top + height - t * height
 
             # Special style for t = 0.01
-            if t == 0.01:
-            # if label == "10 ms":
+            if t == 120 / self.MAX_TICK:
+                # if label == "10 ms":
                 font = QFont()
                 font.setPointSize(12)  # bigger
                 font.setBold(True)
@@ -106,21 +116,28 @@ class ShapeSpawner(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.server_state = {"visual-servo": 0, "efnet": 0, "tbert": 0}
+        self.server_state = {"visual-servo": 0, "iclf-efnet": 0, "text-tbert": 0}
 
-        self.setWindowTitle("Shape Spawner")
+        self.setWindowTitle("PERX")
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)  # FIXED SIZE
-
 
         # Layouts
         main_layout = QVBoxLayout()
         button_layout = QHBoxLayout()
         canvas_layout = QHBoxLayout()  # canvas + ruler side by side
 
+        title_label = QLabel("Beat PERX")
+        font = QFont()
+        font.setPointSize(28)  # larger font size
+        font.setBold(True)
+        title_label.setFont(font)
+        title_label.setStyleSheet("color: red;")  # set text color to red
+        title_label.setAlignment(Qt.AlignCenter)  # center horizontally
+
         # Buttons
         self.btn_circle = QPushButton("visual-servo")
-        self.btn_square = QPushButton("tbert")
-        self.btn_pentagon = QPushButton("efnet")
+        self.btn_square = QPushButton("text-tbert")
+        self.btn_pentagon = QPushButton("iclf-efnet")
         self.btn_clear = QPushButton("CLEAR")
 
         button_layout.addWidget(self.btn_circle)
@@ -149,6 +166,7 @@ class ShapeSpawner(QWidget):
         self.btn_clear.clicked.connect(self.clear_canvas)
 
         # Assemble layouts
+        main_layout.addWidget(title_label)   # add BEFORE buttons
         main_layout.addLayout(button_layout)
         main_layout.addLayout(canvas_layout)
         self.setLayout(main_layout)
@@ -158,7 +176,7 @@ class ShapeSpawner(QWidget):
         self.gravity_timer.timeout.connect(self.apply_gravity)
         self.gravity_timer.start(5)
 
-    def apply_gravity(self, bottom_padding=15):
+    def apply_gravity(self, bottom_padding=30):
         for item in self.scene.items():
             if not getattr(item, "_falling", False):
                 continue
@@ -199,7 +217,7 @@ class ShapeSpawner(QWidget):
         self.inc_server_state("visual-servo")
 
     def spawn_square(self):
-        scale = APP_SCALES["tbert"]
+        scale = APP_SCALES["text-tbert"]
         square = QGraphicsRectItem(0, 0, 50 * scale, 50 * scale)
         square.setBrush(QBrush(QColor("#fccde5")))
         square.setPen(Qt.NoPen)
@@ -207,7 +225,7 @@ class ShapeSpawner(QWidget):
         square.setRotation(random.uniform(0, 90))
         square._falling = True
         self.scene.addItem(square)
-        self.inc_server_state("tbert")
+        self.inc_server_state("text-tbert")
 
     def spawn_pentagon(self):
         scale = APP_SCALES["iclf-efnet"]
@@ -227,7 +245,7 @@ class ShapeSpawner(QWidget):
         pentagon.setRotation(random.uniform(0, 90))
         pentagon._falling = True
         self.scene.addItem(pentagon)
-        self.inc_server_state("efnet")
+        self.inc_server_state("iclf-efnet")
 
     def place_item_without_overlap(self, item, max_attempts=100, padding=10):
         """
