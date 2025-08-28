@@ -24,6 +24,8 @@ SINE_AMP = 25
 SINE_NEG_MUL = 1.0
 SINE_FREQ = 1 / 1
 CURR_TIME = 0
+
+comp_times = []
 class UI():
     def __init__(self, root):
         self.root = root
@@ -147,7 +149,7 @@ class UI():
                             self.detections[int(m_id)] = (int((x_min + x_max) /2), int((y_min + y_max) / 2))
 
                         break
-            
+
                 detections = self.detections
                 if 2 in detections:
                     # Store coordinates of detected objects in the upper half (tip point)
@@ -160,11 +162,13 @@ class UI():
                     fixed_point = {"x": detections[10][0], "y": detections[10][1]}
                 else:
                     fixed_point = {"x": 100, "y": 100}
-                
-                # additional computational delay
-                time.sleep(0.15)
 
-                print("computation time", time.time() - t1)
+                # additional computational delay
+                # time.sleep(0.15)
+                ct = time.time() - t1
+                comp_times.append(ct)
+
+                print("computation time", ct, np.mean(comp_times), np.percentile(comp_times, 95))
 
                 # Draw a big dot at the center of the detected object (tip point) and display its coordinates
                 for coord in [tip_point, fixed_point]:

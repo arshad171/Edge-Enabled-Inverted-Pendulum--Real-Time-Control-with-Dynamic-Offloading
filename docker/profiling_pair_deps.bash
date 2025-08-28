@@ -5,7 +5,7 @@ ulimit -n 5000;
 # lams=(1.0 2.0 4.0 6.0)
 apps1=("visual-servo")
 # apps2=("visual-servo" "iclf-efnet" "text-tbert")
-apps2=("visual-servo")
+apps2=("iclf-efnet" "text-tbert")
 nis_vs=(1 4 8 16)
 nis_ie=(1 2 3)
 nis_tt=(1 2 4 6)
